@@ -25,6 +25,9 @@ void sendToServer(String msg){
  * Funzione che viene invocata ad ogni pacchetto ricevuto.
  */
 void receivedCallback( uint32_t from, String &msg_str ){
+  uint32_t server = 2028206;
+  mesh.sendSingle(server, msg_str);
+  return;
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
   int type = msg["type"];
   switch(type){  
@@ -46,17 +49,21 @@ void receivedCallback( uint32_t from, String &msg_str ){
 
 }
 
+void newConnectionCallback( bool adopt ) {
+  
+}
+
 void setup() {
+  mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT );
   mesh.setReceiveCallback(&receivedCallback);
+  mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
   //Controlla che il server sia raggiungibile
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
+  mesh.setNewConnectionCallback( &newConnectionCallback );
   Serial.begin(115200);
   
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  mesh.update();
 }

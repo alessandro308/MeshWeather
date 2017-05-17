@@ -20,8 +20,17 @@ uint32_t nextHopId = 0; //0 se direttamente connesso al server, chipId del nextH
 #define DATA 1
 int update = 0;
 
-void sendToServer(String msg){
-  
+#define MSGBUFFER 20
+int sentMessage[MSGBUFFER];
+int position = 0;
+
+int isMessageSent(int id){
+  int i;
+  for(i=0; i<MSGBUFFER; i++){
+    if(sentMessage[i] == id)
+      return true;
+  }
+  return false;
 }
 
 String getSerialJSON(){
@@ -53,37 +62,48 @@ void receivedCallback( uint32_t from, String &msg_str ){
         }
     }break;
     case(DATA):{
-        if(nextHopId == SERVER_ID){
-          sendToServer(msg["data"]);
-        }else{
-          mesh.sendSingle(nextHopId, msg_str);
-        }
+        if(!isMessageSent(msg["id"]))
+            if(nextHopId != -1)
+              mesh.sendSingle(nextHopId, msg_str);
+            else
+              mesh.sendBroadcast(msg_str);     
+    }break;
+    default:{
     }break;
   }
    
 }
 
+void newConnectionCallback( bool adopt ) {
+  
+}
 
 void setup() {
+  mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT );
   mesh.setReceiveCallback(&receivedCallback);
+  mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
   //Controlla che il server sia raggiungibile
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
+  mesh.setNewConnectionCallback( &newConnectionCallback );
   Serial.begin(115200);
   
 }
 
 void loop() {
+  mesh.update();
   char x;
-  String msg;
-  if(Serial.available()){
+  String msg("{temp: 23}");
+  /*if(Serial.available()){
     x = Serial.read();
     if( x == 'P' ){
        msg = getSerialJSON();
     }
-    mesh.sendSingle(nextHopId, msg);
-  }
+    if( nextHopId != -1)
+      mesh.sendSingle(nextHopId, msg);
+    else
+      mesh.sendBroadcast(msg);
+  }*/
+  mesh.sendBroadcast(msg);
   
+  delay(5000);
 }
 
