@@ -25,30 +25,10 @@ void sendToServer(String msg){
  * Funzione che viene invocata ad ogni pacchetto ricevuto.
  */
 void receivedCallback( uint32_t from, String &msg_str ){
-  if(from == 2008034)
-    return;
-  JsonObject& msg = jsonBuffer.parseObject(msg_str);
+  /* Stampa sul seriale tutti i pacchetti che riceve */
   Serial.print("from ");
   Serial.println(from);
   Serial.println(msg_str);
-  int type = msg["type"];
-  switch(type){  
-    case(DISCOVERY_REQ):{
-        if(msg["update_number"] > update){
-          update = msg["update_number"];
-          nextHopId = msg["sender_id"];
-        }
-    }break;
-    case(DATA):{
-        if(nextHopId == SERVER_ID){
-          sendToServer(msg["data"]);
-        }else{
-          mesh.sendSingle(nextHopId, msg_str);
-        }
-    }break;
-  }
-   
-
 }
 
 void newConnectionCallback( bool adopt ) {
@@ -72,4 +52,6 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   mesh.update();
+  /*TOOD: Aggiungere richiesta di interesse / Discovery
+   */
 }

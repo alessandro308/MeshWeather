@@ -1,11 +1,13 @@
-import serial
+import serial, json
 import httplib, urllib, time
 from random import uniform
 #ser = serial.Serial('/dev/USB_SERIAL', 115200);
 while True:
 	#x = ser.readline()
-	t = uniform(18,32);
-	print "Temperatura"+str(uniform(18,32));
+	x = '{"temp": 23, "id": 1010, "from": 1234}';
+	j = json.loads(x);
+	t = j["temp"];
+	print "Temperatura: "+str(t);
 	body = urllib.urlencode (
 		{ "field1": t, 
 		"key":"UN9Y3TDAXRQ3CIX4"}

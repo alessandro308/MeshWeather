@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>meshWeather</title>
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/league.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h2>MeshWeather</h2><br/>
+					<h6>Stazioni Meteo Distribuite per il monitoraggio dei campi</h6>
+					<img src="img/esempio.png" height="380px"/>
+				</section>
+
+				<section>
+					<section>
+						<h3>Hardware</h3>
+						<p class="fragment"> Abbiamo fatto ciò che non dovevamo fare...<br/>
+							... scegliere prima l'hardware e poi capire come usarlo</p>
+					</section>
+					<section>
+						<ul>
+							<li> ESP-01, tanti, tantissimi... <br/>
+								<img src="img/ESP-01.png"/>
+							</li>
+							<li>
+								Arduino e relativi sensori
+							</li>
+						</ul>
+					</section>
+					<section>
+						<h4>Circuito per gestire gli ESP-01</h4>
+						<ul>
+							<li class="fragment">
+								Per il bootloading abbiamo usato il circuito <br/> <center><a href="http://fritzing.org/projects/esp01-development-board">ESP01-developer-board</a></center> 
+							</li>
+							<li class="fragment">
+								Per l'utilizzo nella rete abbiamo realizzato un circuito per la regolazione della tensione, <a href="usage-only.fzz">scaricabile qui</a>
+							</li>
+						</ul>
+						<div>	
+							<img src="img/devBoard.png" height="170px" />
+							<img src="img/usageMode.png" height="170px" alt="usageMode"/>
+						</div>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h3>Software</h3>
+						<p>(La parte divertente)</p>
+					</section>
+					<section>
+						<h4>Cosa abbiamo fatto... </h4>
+						<ul>
+							<li class="fragment"> 
+								Passo 1: flashare il tutto (<a href="https://h3ron.com/post/programmare-lesp8266-ovvero-arduino-con-il-wifi-a-meno-di-2/">maggiori dettagli...</a>)
+							</li>
+							<li class="fragment">
+								Passo 2: trovare una libreria per la gestione della Mesh Network
+								<ul>
+									<li class="fragment"><a href="https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi">Arduino ESP8266-WiFi</a></li>
+									<li class="fragment">Su cui è costruita la libreria che usiamo, <a href="https://github.com/alessandro308/easyMesh">easyMesh</a></li>
+								</ul>
+							</li>
+							<li class="fragment">
+								Passo 3: Creare la nostra rete mesh (codice su <a href="https://github.com/alessandro308/MeshWeather">GitHub</a>)
+							</li>
+						</ul>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h2>Protocolli di comunicazione</h2>
+						<h4>3 modalità di comunicazione</h4>
+						<ul>
+							<li class="fragment">Seriale - Arduino, ESP-01
+								<p style="font-size: 0.7em">
+									Collegamento seriale puro, dove vengono mandati dei pacchetti JSON contenente i dati raccolti.
+								</p>
+							</li>
+							<li class="fragment">Wifi - ESP-01, ESP-01
+								<p style="font-size: 0.7em">
+									Rete Mesh ad hoc simulata tramite una serie di connessioni punto-punto.
+								</p>
+							</li>
+							<li class="fragment">Wifi/Seriale - ESP-01, Server
+								<p style="font-size: 0.7em">
+									Collegamento seriale (o alternativamente Wifi) che raccoglie tutti i pacchetti della rete e li manda al server che li elaborerà
+								</p>
+							</li>
+						</ul>
+					</section>
+					<section>
+						<h2>Collegamento Seriale-Arduino</h2>
+						<ul>
+							<li>Poca affidabilità</li>
+							<li>Tensioni diverse (5V VS 3.3V)</li>
+						</ul>
+					</section>
+					<section>
+						<h2>Protocollo della rete mesh</h2>
+						Directed Diffusion
+						<hr/>
+						<div class="fragment " style="font-size: 0.7em">
+							<h4>Discovery</h4>
+							Parte dal server, è una <font color="#33cccc">richiesta di interesse</font>. Viene usata per indirizzare la rotta. <br/>
+							Alternativamente si potrebbe usare l'<font color="#33cccc">RSS</font>. Si è testato ma per le distanze usate era tutto molto variabile e poco affidabile con il rischio di creare una rete piatta.
+						</div>
+					</section>
+					<section>
+						<h2>Protocollo della rete mesh</h2>
+						Directed Diffusion
+						<hr/>
+						<div class="fragment" style="font-size: 0.7em">
+							<h4>Fowarding</h4>
+							Ogni volta che un nodo riceve un pacchetto lo <font color="#33cccc">inoltro al nodo successivo</font>. Se non esiste lo mando in <font color="#33cccc">broadcast</font>. Ogni nodo tiene traccia degli ultimi 30 pacchetti inoltrati così da evitare un floading inutile della rete. <br/> <br/>
+							Non è stata volontariamente gestita la <font color="#33cccc">pardita di pacchetti</font> poichè i dati raccolti differiscono poco dai precedenti e quindi non è necessario un campionamento eccessivo. Inoltre una nuova richiesta di interesse del sink provvederà, qualora sia necessario, a ricostruire la rotta con una frequenza adeguata alla situazione (parametro della rete).
+						</div>
+					</section>
+					<section>
+						<h2>Protocollo della rete mesh</h2>
+						Directed Diffusion
+						<hr/>
+						<div class="fragment" style="font-size: 0.7em">
+							<h4>Nodo Station / Nodo Server</h4>
+							Unica eccezione sono i nodi agli estremi.
+							<ul>
+								<li>
+									Il primo oltre che inoltrare "genera" anche dati nella rete. La lettura dei dati da sensore può avvenire o tramite collegamento seriale con <font color="#33cccc">Arduino</font> che si preoccupa di inserire i dati in un unico pacchetto o, come nella demo, con un sensore connesso direttamente all'<font color="#33cccc">ESP-01</font>.
+								</li>
+								<li>
+								 	Il secondo non inoltra ma manda tutto al server tramite una connessione via cavo seriale. Tale scelta è dovuta al fatto che la radio wifi del pc è già usata per raccogliere i dati su <font color="#33cccc">ThingSpeak</font> e tale interfaccia non poteva quindi essere usata per le connessione alla rete mesh.
+								</li>
+							</ul>
+						</div>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h3>La nostra demo</h3>
+						<h6>Cioè un modello semplificato</h6>
+					</section>
+					<section>
+						<p>La stazione Arduino viene simulata direttamente su un ESP-01.</p>
+								<pre><code class="c">void loop(){
+	[...]
+	String msg("{temp: 23}");
+	/*if(Serial.available()){
+	x = Serial.read();
+	if( x == 'P' ){
+	   msg = getSerialJSON();
+	}
+	if( nextHopId != -1)
+	  mesh.sendSingle(nextHopId, msg);
+	else
+	  mesh.sendBroadcast(msg);
+	}*/
+	mesh.sendBroadcast(msg);
+}</code>
+								</pre>
+						<p style="font-size: 0.6em">Tale semplificazione è giustificabile dal fatto che nel caso in cui si hanno due sensori di raccolta dati, questi possono essere raccolti direttamente con un ESP-01 senza necessità di un microcontrollore esterno.</p>
+					</section>
+					<section>
+						<p>Abbiamo 3 ESP-01, quello connesso al server ignora i pacchetti che gli arrivano dal primo</p>
+						<pre><code class="c">void receivedCallback( uint32_t from, String &msg_str ){
+  if(from == 2008034 /*ID dell'ESP-01 che genera i dati*/)
+    return;
+    [...]
+    }</code></pre>
+					</section>
+					<section>
+						<p>I dati raccolti non vengono analizzati ma semplicemente salvati su un server (<a href="https://thingspeak.com">ThingSpeak</a>)</p>
+						<p class="fragment highlight-blue grow">Let's start!</p>
+						<iframe class="fragment" width="450" height="250" style="border: 1px solid #cccccc;" src="http://thingspeak.com/channels/274077/charts/1" id="iframeid"></iframe>
+						
+						<script>
+							window.setInterval(function(){
+								var iframe = document.getElementById('iframeid');
+								var src = iframe.src;
+								iframe.src = "";
+								iframe.src = src;
+							}, 6000);
+							
+						</script>
+					</section>
+				</section>
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>

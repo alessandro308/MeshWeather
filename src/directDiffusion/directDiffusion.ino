@@ -18,9 +18,25 @@ uint32_t nextHopId = 0; //0 se direttamente connesso al server, chipId del nextH
 #define DATA 1
 int update = 0;
 
-void sendToServer(String msg){
-  
+int lastPId[30];
+uint32_t lastCId[30];
+
+void alreadySent(int id, uint32_t from){
+  int i;
+  for(i=0; i<30; i++){
+    if(lastPId[i] == id && lastCId[i] == from)
+      return true;
+  }
+  return false;
 }
+
+int lastInserted = 0;
+void addSentMessage(int id, uint32_t from){
+  lastInserted=(lastInserted+1)%30;
+  lastPId[lastInserted]=id;
+  lastCId[lastInserted]=from;
+}
+
 /*
  * Funzione che viene invocata ad ogni pacchetto ricevuto.
  */
@@ -38,10 +54,13 @@ void receivedCallback( uint32_t from, String &msg_str ){
         }
     }break;
     case(DATA):{
-        if(nextHopId == SERVER_ID){
-          sendToServer(msg["data"]);
-        }else{
-          mesh.sendSingle(nextHopId, msg_str);
+        /* Se il pacchetto mi era già arrivato lo ignoro. Altrimenti, se non conosco un nextHop lo mando in broadcast, sennò lo inoltro punto.*/
+        if(!alreadySent(msg["id"], msg["from"]){ 
+          if(nextHopId == -1){
+            mesh.sendBroadcast(msg_str);
+          }else{
+            mesh.sendSingle(nextHopId, msg_str);
+          }
         }
     }break;
   }

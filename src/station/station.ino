@@ -20,17 +20,23 @@ uint32_t nextHopId = 0; //0 se direttamente connesso al server, chipId del nextH
 #define DATA 1
 int update = 0;
 
-#define MSGBUFFER 20
-int sentMessage[MSGBUFFER];
-int position = 0;
+int lastPId[30];
+uint32_t lastCId[30];
 
-int isMessageSent(int id){
+void alreadySent(int id, uint32_t from){
   int i;
-  for(i=0; i<MSGBUFFER; i++){
-    if(sentMessage[i] == id)
+  for(i=0; i<30; i++){
+    if(lastPId[i] == id && lastCId[i] == from)
       return true;
   }
   return false;
+}
+
+int lastInserted = 0;
+void addSentMessage(int id, uint32_t from){
+  lastInserted=(lastInserted+1)%30;
+  lastPId[lastInserted]=id;
+  lastCId[lastInserted]=from;
 }
 
 String getSerialJSON(){
@@ -62,7 +68,7 @@ void receivedCallback( uint32_t from, String &msg_str ){
         }
     }break;
     case(DATA):{
-        if(!isMessageSent(msg["id"]))
+        if(!alreadySent(msg["id"], msg["from"]))
             if(nextHopId != -1)
               mesh.sendSingle(nextHopId, msg_str);
             else
@@ -91,7 +97,10 @@ void setup() {
 void loop() {
   mesh.update();
   char x;
-  String msg("{temp: 23}");
+  /*
+   * TODO: Costruire un pacchetto esempio con id, from, msg e id che incrementa
+   */
+  String msg("{temp: 23, from: 001010}");
   /*if(Serial.available()){
     x = Serial.read();
     if( x == 'P' ){
