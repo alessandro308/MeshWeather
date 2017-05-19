@@ -12,14 +12,13 @@
 #define   SERVER_PORT     
 #define   MAX_SIZE        512
 easyMesh  mesh;
-StaticJsonBuffer<512> jsonBuffer;
+DynamicJsonBuffer jsonBuffer;
 char msgString[MAX_SIZE];
 
 uint32_t nextHopId = 0; //0 se direttamente connesso al server, chipId del nextHop altrimenti
 #define DISCOVERY_REQ 0
 #define DATA 1
 int update = 0;
-
 int lastPId[30];
 uint32_t lastCId[30];
 int packetSendNumber=0;
@@ -88,7 +87,7 @@ void newConnectionCallback( bool adopt ) {
 void setup() {
   mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT );
   mesh.setReceiveCallback(&receivedCallback);
-  mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
+  mesh.setDebugMsgTypes( ERROR); //| MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
   //Controlla che il server sia raggiungibile
   mesh.setNewConnectionCallback( &newConnectionCallback );
   Serial.begin(115200);
@@ -101,11 +100,11 @@ void loop() {
   /*
    * TODO: Costruire un pacchetto esempio con id, from, msg e id che incrementa
    */
-  JsonObject& message = jsonBuffer.createObject();
-  message["from"]=mesh.getChipId();
-  message["id"]=++packetSendNumber;
-  String msg;
-  message.printTo(msg);
+  char msg[256];
+  sprintf(msg, "{\"from\": %d, \"id\": %d, \"temp\": 34.45}", mesh.getChipId(), ++packetSendNumber);
+  
+  Serial.print("MESSAGGIO: ");
+  Serial.println(msg);
   /*if(Serial.available()){
     x = Serial.read();
     if( x == 'P' ){
@@ -116,8 +115,8 @@ void loop() {
     else
       mesh.sendBroadcast(msg);
   }*/
-  mesh.sendBroadcast(msg);
-  
-  delay(5000);
+  String p(msg);
+  mesh.sendBroadcast(p);
+  delay(2000);
 }
 
