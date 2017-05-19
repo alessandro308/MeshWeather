@@ -2,7 +2,7 @@
 This project try to build a distributed network with ESP-01 chips. This network is used by some weather station proudly powered with Arduino. 
 All data are sent to server that analyze the values in order to know how set external operator (e.g. pump, windows of greenhouse...)
 
-![Ideal Space Organization](https://image.ibb.co/i6Awi5/esempiomw.png)
+![Ideal Space Organization](https://raw.githubusercontent.com/alessandro308/MeshWeather/master/esempiomw.png)
 
 ## Hardware
 In order to build  system, we use 
