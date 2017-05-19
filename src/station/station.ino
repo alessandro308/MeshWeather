@@ -22,14 +22,15 @@ int update = 0;
 
 int lastPId[30];
 uint32_t lastCId[30];
+int packetSendNumber=0;
 
-void alreadySent(int id, uint32_t from){
+int alreadySent(int id, uint32_t from){
   int i;
   for(i=0; i<30; i++){
     if(lastPId[i] == id && lastCId[i] == from)
-      return true;
+      return 1;
   }
-  return false;
+  return 0;
 }
 
 int lastInserted = 0;
@@ -100,7 +101,11 @@ void loop() {
   /*
    * TODO: Costruire un pacchetto esempio con id, from, msg e id che incrementa
    */
-  String msg("{temp: 23, from: 001010}");
+  JsonObject& message = jsonBuffer.createObject();
+  message["from"]=mesh.getChipId();
+  message["id"]=++packetSendNumber;
+  String msg;
+  message.printTo(msg);
   /*if(Serial.available()){
     x = Serial.read();
     if( x == 'P' ){

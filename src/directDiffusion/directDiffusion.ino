@@ -21,13 +21,13 @@ int update = 0;
 int lastPId[30];
 uint32_t lastCId[30];
 
-void alreadySent(int id, uint32_t from){
+int alreadySent(int id, uint32_t from){
   int i;
   for(i=0; i<30; i++){
     if(lastPId[i] == id && lastCId[i] == from)
-      return true;
+      return 1;
   }
-  return false;
+  return 0;
 }
 
 int lastInserted = 0;
@@ -55,7 +55,7 @@ void receivedCallback( uint32_t from, String &msg_str ){
     }break;
     case(DATA):{
         /* Se il pacchetto mi era già arrivato lo ignoro. Altrimenti, se non conosco un nextHop lo mando in broadcast, sennò lo inoltro punto.*/
-        if(!alreadySent(msg["id"], msg["from"]){ 
+        if(!alreadySent(msg["id"], msg["from"])){ 
           if(nextHopId == -1){
             mesh.sendBroadcast(msg_str);
           }else{
