@@ -26,8 +26,6 @@ void sendToServer(String msg){
  */
 void receivedCallback( uint32_t from, String &msg_str ){
   /* Stampa sul seriale tutti i pacchetti che riceve */
-  Serial.print("from ");
-  Serial.println(from);
   Serial.println(msg_str);
 }
 
@@ -42,7 +40,7 @@ void setup() {
   Serial.println(mesh.getChipId());
   Serial.println("INIT END");
   mesh.setReceiveCallback(&receivedCallback);
-  mesh.setDebugMsgTypes( ERROR | MESH_STATUS );
+  //mesh.setDebugMsgTypes( ERROR | MESH_STATUS );
   //Controlla che il server sia raggiungibile
   mesh.setNewConnectionCallback( &newConnectionCallback );
   
