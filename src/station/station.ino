@@ -17,7 +17,7 @@
 #define   DISCOVERY_REQ   0
 #define   DATA            1
 
-static int tempPin = 2;
+int tempPin = 2;
 easyMesh mesh;
 std::map<uint32_t ,int> lastSentMsg;
 DynamicJsonBuffer jsonBuffer(MAX_SIZE);
@@ -41,9 +41,6 @@ void propagateDiscovery(JsonObject& m){
 }
 
 void propagateData(String& msg_str, uint32_t from, int id ){
-  /*If the route is expired, nextHopId is set to -1*/
-  if(mesh.getNodeTime()%SYNCINTERVAL<SYNCINTERVAL)
-    nextHopId = -1;
   if(nextHopId != -1)
     mesh.sendSingle(nextHopId, msg_str);
   else
@@ -119,4 +116,5 @@ void loop(){
     nextHopId = -1;
   delay((long)delayTime);
 }
+
 

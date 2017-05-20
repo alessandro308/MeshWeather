@@ -11,15 +11,15 @@
 #define   RSSI_THRESHOLD  50 
 #define   SERVER_ID       -1
 #define   MAX_SIZE        512
+#define   DISCOVERY_REQ   0
+#define   DATA            1
 #define   SYNCINTERVAL    1800000
 
 easyMesh mesh;
 DynamicJsonBuffer jsonBuffer(MAX_SIZE);
 char msgString[MAX_SIZE];
-
 uint32_t nextHopId = 0;
-#define DISCOVERY_REQ 0
-#define DATA 1
+uint32_t lastSyncTime = 0;
 int update = 0;
 std::map<uint32_t ,int> lastSentMsg;
 int lastPId[30];
@@ -35,7 +35,7 @@ void propagateDiscovery(JsonObject& m){
 
 void propagateData(String& msg_str, uint32_t from, int id ){
   /*If the route is expired, nextHopId is set to -1*/
-  if(mesh.getNodeTime()%SYNCINTERVAL<SYNCINTERVAL)
+  if((mesh.getNodeTime()-lastSyncTime)>=SYNCINTERVAL)
     nextHopId = -1;
   if(nextHopId != -1)
     mesh.sendSingle(nextHopId, msg_str);
@@ -61,6 +61,7 @@ void receivedCallback( uint32_t from, String &msg_str ){
             update = 0;
           nextHopId = msg["sender_id"];
           propagateDiscovery(msg);
+          lastSyncTime = mesh.getNodeTime();
         }
     }break;
     case(DATA):{
