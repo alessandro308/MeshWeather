@@ -1,0 +1,14 @@
+Introduzione al protocollo:
+	- tipi di messaggi (discoveryReq, data) e formati pacchetti JSON
+	- strutture dati e variabili per mantenimento consistenza
+Entità[descrivere differenze di scopi e funzionalità]:
+	- station&LM35(GPIO2)
+	- genericNode
+	- espServer
+Core Parts[eventuali strutture dati impiegate e logiche di funzionamento]:
+	- discoveryTree@espServer.ino:
+		○ propagazione sync attraverso la rete (validità rotte) e come viene gestita/garantita in station/genericNode
+		○ motivare la scelta dell'albero e spiegare come viene implementata
+	- recievedCallback@espServer/station/genericNode.ino:
+		○ spiegare come viene garantita la pubblicazione di prese dati non duplicate (map@espServer.ino)
+		○ altro?

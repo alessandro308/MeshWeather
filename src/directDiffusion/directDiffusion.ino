@@ -1,5 +1,7 @@
 #include <ArduinoJson.h>
 #include <easyMesh.h>
+#include <limits.h>
+#include <map>
 #include "ESP8266WiFi.h"
 
 #define   MESH_PREFIX     "meshNet"
@@ -9,80 +11,83 @@
 #define   RSSI_THRESHOLD  50 
 #define   SERVER_ID       -1
 #define   MAX_SIZE        512
-easyMesh  mesh;
-StaticJsonBuffer<512> jsonBuffer;
+#define   SYNCINTERVAL    1800000
+
+easyMesh mesh;
+DynamicJsonBuffer jsonBuffer(MAX_SIZE);
 char msgString[MAX_SIZE];
 
-uint32_t nextHopId = 0; //0 se direttamente connesso al server, chipId del nextHop altrimenti
+uint32_t nextHopId = 0;
 #define DISCOVERY_REQ 0
 #define DATA 1
 int update = 0;
-
+std::map<uint32_t ,int> lastSentMsg;
 int lastPId[30];
 uint32_t lastCId[30];
 
-void alreadySent(int id, uint32_t from){
-  int i;
-  for(i=0; i<30; i++){
-    if(lastPId[i] == id && lastCId[i] == from)
-      return true;
-  }
-  return false;
-}
-
-int lastInserted = 0;
-void addSentMessage(int id, uint32_t from){
-  lastInserted=(lastInserted+1)%30;
-  lastPId[lastInserted]=id;
-  lastCId[lastInserted]=from;
-}
-
-/*
- * Funzione che viene invocata ad ogni pacchetto ricevuto.
- */
-void receivedCallback( uint32_t from, String &msg_str ){
-  uint32_t server = 2028206;
-  mesh.sendSingle(server, msg_str);
+void propagateDiscovery(JsonObject& m){
+  char msg[256];
+  sprintf(msg, "{\"from\": %d, \"update_number\": %d, \"sender_id\": %d, \"type\": 0}", m["from"], m["update_number"], mesh.getChipId());
+  String p(msg);
+  mesh.sendBroadcast(p);
   return;
+}
+
+void propagateData(String& msg_str, uint32_t from, int id ){
+  /*If the route is expired, nextHopId is set to -1*/
+  if(mesh.getNodeTime()%SYNCINTERVAL<SYNCINTERVAL)
+    nextHopId = -1;
+  if(nextHopId != -1)
+    mesh.sendSingle(nextHopId, msg_str);
+  else
+    mesh.sendBroadcast(msg_str);
+  if(id==99)
+    /*Prevent overflow*/
+    lastSentMsg[from] = -1;  
+  else
+    lastSentMsg[from] = id;
+  return;
+}
+
+void receivedCallback( uint32_t from, String &msg_str ){
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
   int type = msg["type"];
   switch(type){  
     case(DISCOVERY_REQ):{
         if(msg["update_number"] > update){
           update = msg["update_number"];
+          if(update == INT_MAX)
+            /*Prevent overflow*/
+            update = 0;
           nextHopId = msg["sender_id"];
+          propagateDiscovery(msg);
         }
     }break;
     case(DATA):{
-        /* Se il pacchetto mi era già arrivato lo ignoro. Altrimenti, se non conosco un nextHop lo mando in broadcast, sennò lo inoltro punto.*/
-        if(!alreadySent(msg["id"], msg["from"]){ 
-          if(nextHopId == -1){
-            mesh.sendBroadcast(msg_str);
-          }else{
-            mesh.sendSingle(nextHopId, msg_str);
-          }
-        }
+      /*
+      * If the node has already sent a data packet from message["from"], before forewarding it
+      * we need to check that it's newer than the last sent in order to avoid useless communications
+      */
+      if(lastSentMsg[msg["from"]] != NULL && lastSentMsg[msg["from"]] != 0)
+        if(lastSentMsg[msg["from"]] < msg["id"])
+          propagateData(msg_str, msg["from"], msg["id"]);
+      else
+        propagateData(msg_str, msg["from"], msg["id"]);
     }break;
+    default:{}break;
   }
-   
-
 }
 
-void newConnectionCallback( bool adopt ) {
-  
-}
+void newConnectionCallback( bool adopt ){}
 
-void setup() {
+void setup(){
   mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT );
   mesh.setReceiveCallback(&receivedCallback);
   mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
-  //Controlla che il server sia raggiungibile
   mesh.setNewConnectionCallback( &newConnectionCallback );
   Serial.begin(115200);
-  
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   mesh.update();
 }
