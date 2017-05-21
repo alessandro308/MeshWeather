@@ -123,7 +123,13 @@
 						<hr/>
 						<div class="fragment " style="font-size: 0.7em">
 							<h4>Discovery</h4>
-							Parte dal server, è una <font color="#33cccc">richiesta di interesse</font>. Viene usata per indirizzare la rotta. <br/>
+							Inviata dal server ai suoi vicini e propagata in broadcast fra i nodi, viene usata per costuire l'albero di copertura della rete così da evitare il formarsi di cicli.
+<pre><code class="JSON fragment grow">{ 
+	"from" : uint32_t idServer, 
+	"updat_number" : int currentUpdateNumber, 
+	"sender_id" : uint32_t prevHopId, 
+	"type" :  0 
+}</code></pre>
 							Alternativamente si potrebbe usare l'<font color="#33cccc">RSS</font>. Si è testato ma per le distanze usate era tutto molto variabile e poco affidabile con il rischio di creare una rete piatta.
 						</div>
 					</section>
@@ -132,9 +138,24 @@
 						Directed Diffusion
 						<hr/>
 						<div class="fragment" style="font-size: 0.7em">
-							<h4>Fowarding</h4>
-							Ogni volta che un nodo riceve un pacchetto lo <font color="#33cccc">inoltro al nodo successivo</font>. Se non esiste lo mando in <font color="#33cccc">broadcast</font>. Ogni nodo tiene traccia degli ultimi 30 pacchetti inoltrati così da evitare un floading inutile della rete. <br/> <br/>
+							<h4>Fowarding/Data</h4>
+							Ogni volta che un nodo riceve un pacchetto lo <font color="#33cccc">inoltro al nodo successivo</font>. Se non esiste lo mando in <font color="#33cccc">broadcast</font>. <br/> <br/>
 							Non è stata volontariamente gestita la <font color="#33cccc">pardita di pacchetti</font> poichè i dati raccolti differiscono poco dai precedenti e quindi non è necessario un campionamento eccessivo. Inoltre una nuova richiesta di interesse del sink provvederà, qualora sia necessario, a ricostruire la rotta con una frequenza adeguata alla situazione (parametro della rete).
+						</div>
+					</section>
+					<section>
+						<h2>Protocollo della rete mesh</h2>
+						Directed Diffusion
+						<hr/>
+						<div style="font-size: 0.7em">
+							<h4>Strutture dati</h4>
+							<ul>
+								<li><div class="fragment grow"><pre><code class="C">map&lt;uint32_t, int&gt; lastSentMsg</code></pre></div>Dizionario attraverso il quale si evita la diffusione di pacchetti duplicati all'interno della rete. 
+								</li>
+								<li>
+								<div class="fragment grow"><pre><code class="C">int update, lastSyncTime</code></pre></div>Gestite dal server e usate nella fase di discovery per comunicare ai nodi l’aggiornamento delle rotte e l’avvio di una nuova fase di sincronizzazione.
+								</li>
+							</ul>
 						</div>
 					</section>
 					<section>
@@ -143,15 +164,94 @@
 						<hr/>
 						<div class="fragment" style="font-size: 0.7em">
 							<h4>Nodo Station / Nodo Server</h4>
-							Unica eccezione sono i nodi agli estremi.
+							La rete è completamente composta da ESP-01. <br/>A seconda del loro ruolo, tuttavia, possiamo distinguerli in 3 categorie: <br/> </br/>
 							<ul>
 								<li>
-									Il primo oltre che inoltrare "genera" anche dati nella rete. La lettura dei dati da sensore può avvenire o tramite collegamento seriale con <font color="#33cccc">Arduino</font> che si preoccupa di inserire i dati in un unico pacchetto o, come nella demo, con un sensore connesso direttamente all'<font color="#33cccc">ESP-01</font>.
+									<font color="#33cccc">Station</font>. Il compito di nodi di questo tipo è quello di leggere i dati dai sensori, creare un pacchetto di tipo DATA e inviarlo al server.
 								</li>
 								<li>
-								 	Il secondo non inoltra ma manda tutto al server tramite una connessione via cavo seriale. Tale scelta è dovuta al fatto che la radio wifi del pc è già usata per raccogliere i dati su <font color="#33cccc">ThingSpeak</font> e tale interfaccia non poteva quindi essere usata per le connessione alla rete mesh.
+								 	<font color="#33cccc">GenericNode</font>. I nodi intermedi si occupano esclusivamente di inoltrare i pacchetti dati verso il server e le discoveryReq a tutti vicini.
+								</li>
+								<li>
+								 	<font color="#33cccc">espServer</font>. Il/i server lanciano periodicamente una discoveryReq e si preoccupano di inviare sulla porta seriale tutti i <b>nuovi</b> pacchetti dati.
+
 								</li>
 							</ul>
+						</div>
+					</section>
+					<section>
+						<h2>Protocollo della rete mesh</h2>
+						Directed Diffusion
+						<hr/>
+						<div style="font-size: 0.7em">
+							<h4>Discovery nel server</h4>
+							Implementata da discoveryTree(), crea e invia un pacchetto per reinizzializzare l’albero di copertura della rete e risincronizzare i nodi
+						<div class="fragment grow" >
+							<pre><code class="C">void discoveryTree(){ 
+  char msg[256];
+  sprintf(msg, "{\"from\": %d, \"update_number\": %d, \"sender_id\": %d,
+  \"type\": 0}", mesh.getChipId(), ++update, mesh.getChipId());
+  /*Prevent overflow*/
+  if(update == INT_MAX)
+    update = 0;
+  String p(msg);
+  mesh.sendBroadcast(p);
+  lastSyncTime = mesh.getNodeTime();
+  return; 
+}
+</code></pre></div>
+						</div>
+					</section>
+					<section>
+						<h2>Protocollo della rete mesh</h2>
+						Directed Diffusion
+						<hr/>
+						<div style="font-size: 0.7em">
+							<h4>Discovery nei nodi</h4>
+							Se la discoveryReq ricevuta è più recente dell’ultima memorizzata si aggiorna la rotta e si propaga la richiesta in broadcast.
+						<div class="fragment grow" >
+							<pre><code class="C">void receivedCallback( uint32_t from, String &msg_str ){
+  JsonObject& msg = jsonBuffer.parseObject(msg_str);
+  int type = msg["type"];
+  switch(type){  
+    case(DISCOVERY_REQ):{
+        if(msg["update_number"] > update){
+          update = msg["update_number"];
+          if(update == INT_MAX)
+            /*Prevent overflow*/
+            update = 0;
+          nextHopId = msg["sender_id"];
+          propagateDiscovery(msg);
+	 lastSyncTime = mesh.getNodeTime();
+        }
+    }break;
+[...]
+</code></pre></div>
+						</div>
+					</section>
+					<section>
+						<h2>Protocollo della rete mesh</h2>
+						Directed Diffusion
+						<hr/>
+						<div style="font-size: 0.7em">
+							<h4>Gestione pacchetto dati nel server</h4>
+							Se il pacchetto ricevuto da <i>from</i> è più recente dell’ultimo memorizzato, si invia sulla seriale e si aggiorna il dizionario.
+						<div class="fragment grow" >
+							<pre><code class="C">void receivedCallback( uint32_t from, String &msg_str ){
+  JsonObject& message = jsonBuffer.parseObject(msg_str);
+  int type = message["type"];
+  if(type!=DISCOVERY_REQ){
+    if (lastSentMsg[message["from"]] != NULL && lastSentMsg[message["from"]] != 0)
+      if(lastSentMsg[message["from"]] < message["id"]){
+        addAlreadySent(message["from"], message["id"]);
+        printJson(message);
+      }
+    else{
+        addAlreadySent(message["from"], message["id"]);
+        printJson(message);
+    }}}
+
+</code></pre></div>
 						</div>
 					</section>
 				</section>
@@ -164,20 +264,10 @@
 						<p>La stazione Arduino viene simulata direttamente su un ESP-01.</p>
 								<pre><code class="c">void loop(){
 	[...]
-	String msg("{temp: 23}");
-	/*if(Serial.available()){
-	x = Serial.read();
-	if( x == 'P' ){
-	   msg = getSerialJSON();
-	}
-	if( nextHopId != -1)
-	  mesh.sendSingle(nextHopId, msg);
-	else
-	  mesh.sendBroadcast(msg);
-	}*/
+	char msg[100];
+	sprintf(msg, "{\"temp\": %f", getTemp());
 	mesh.sendBroadcast(msg);
-}</code>
-								</pre>
+}</code></pre>
 						<p style="font-size: 0.6em">Tale semplificazione è giustificabile dal fatto che nel caso in cui si hanno due sensori di raccolta dati, questi possono essere raccolti direttamente con un ESP-01 senza necessità di un microcontrollore esterno.</p>
 					</section>
 					<section>
@@ -190,9 +280,9 @@
 					</section>
 					<section>
 						<p>I dati raccolti non vengono analizzati ma semplicemente salvati su un server (<a href="https://thingspeak.com">ThingSpeak</a>)</p>
-						<p class="fragment highlight-blue grow">Let's start!</p>
-						<iframe class="fragment" width="450" height="250" style="border: 1px solid #cccccc;" src="http://thingspeak.com/channels/274077/charts/1" id="iframeid"></iframe>
-						
+						<div class="fragment"><p>Let's start!</p>
+						<iframe class="fragment grow" width="450" height="250" style="border: 1px solid #cccccc;" src="http://thingspeak.com/channels/274077/charts/1" id="iframeid"></iframe>
+						</div>
 						<script>
 							window.setInterval(function(){
 								var iframe = document.getElementById('iframeid');
