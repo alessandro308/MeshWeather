@@ -1,5 +1,6 @@
 #include <ArduinoJson.h>
 #include <easyMesh.h>
+#include <limits.h>
 #include "ESP8266WiFi.h"
 
 #define   MESH_PREFIX     "meshNet"
@@ -9,19 +10,25 @@
 #define   RSSI_THRESHOLD  50 
 #define   SERVER_ID       -1
 #define   SERVER_IP       
+#define   SYNCINTERVAL    1800000
 #define   SERVER_PORT     
 #define   MAX_SIZE        512
-easyMesh  mesh;
-DynamicJsonBuffer jsonBuffer;
-char msgString[MAX_SIZE];
+#define   DISCOVERY_REQ   0
+#define   DATA            1
 
-uint32_t nextHopId = 0; //0 se direttamente connesso al server, chipId del nextHop altrimenti
-#define DISCOVERY_REQ 0
-#define DATA 1
+int tempPin = 2;
+easyMesh mesh;
+DynamicJsonBuffer jsonBuffer(MAX_SIZE);
+uint32_t lastSyncTime = 0; //Used to guarantee the route consistency
+char msgString[MAX_SIZE];
+uint32_t delayTime = 15000;
+uint32_t totTime = 0;
+uint32_t nextHopId = 0;
 int update = 0;
 int lastPId[30];
 uint32_t lastCId[30];
-int packetSendNumber=0;
+short packetSendNumber = 0;
+int lastInserted = 0;
 
 int alreadySent(int id, uint32_t from){
   int i;
@@ -32,31 +39,29 @@ int alreadySent(int id, uint32_t from){
   return 0;
 }
 
-int lastInserted = 0;
 void addSentMessage(int id, uint32_t from){
   lastInserted=(lastInserted+1)%30;
   lastPId[lastInserted]=id;
   lastCId[lastInserted]=from;
 }
 
-String getSerialJSON(){
-  int s = 0;
-  String json("");
-  do{
-    char x = Serial.read();
-    json += x;
-    if(x == '{')
-      s++;
-    else if(s == '}')
-      s--;
-  }while(s);
-  return json;
+void propagateDiscovery(JsonObject& m){
+  char msg[256];
+  sprintf(msg, "{\"from\": %d, \"update_number\": %d, \"sender_id\": %d, \"type\": 0}", m["from"], m["update_number"], mesh.getChipId());
+  String p(msg);
+  mesh.sendBroadcast(p);
+  return;
 }
 
+void propagateData(String& msg_str, uint32_t from, int id ){
+  if(nextHopId != -1)
+    mesh.sendSingle(nextHopId, msg_str);
+  else
+    mesh.sendBroadcast(msg_str);
+  addSentMessage(id, from);
+  return;
+}
 
-/*
- * Funzione che viene invocata ad ogni pacchetto ricevuto.
- */
 void receivedCallback( uint32_t from, String &msg_str ){
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
   int type = msg["type"];
@@ -64,59 +69,53 @@ void receivedCallback( uint32_t from, String &msg_str ){
     case(DISCOVERY_REQ):{
         if(msg["update_number"] > update){
           update = msg["update_number"];
+          if(update == INT_MAX)
+            /*Prevent overflow*/
+            update = 0;
           nextHopId = msg["sender_id"];
+          propagateDiscovery(msg);
         }
     }break;
     case(DATA):{
-        if(!alreadySent(msg["id"], msg["from"]))
-            if(nextHopId != -1)
-              mesh.sendSingle(nextHopId, msg_str);
-            else
-              mesh.sendBroadcast(msg_str);     
+      if(!alreadySent(msg["id"], msg["from"]))
+        propagateData(msg_str, msg["from"], msg["id"]);
     }break;
-    default:{
-    }break;
+    default:{}break;
   }
-   
 }
 
-void newConnectionCallback( bool adopt ) {
-  
+float readTemp(){ 
+  float millivolts = analogRead(tempPin)/1023.0*5000;
+  float celsius = millivolts/10; 
+  return celsius; /* return 23.57; */ 
 }
 
-void setup() {
+void newConnectionCallback( bool adopt ){}
+
+void setup(){
   mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT );
   mesh.setReceiveCallback(&receivedCallback);
-  mesh.setDebugMsgTypes( ERROR); //| MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
-  //Controlla che il server sia raggiungibile
+  mesh.setDebugMsgTypes(ERROR); //| MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
   mesh.setNewConnectionCallback( &newConnectionCallback );
   Serial.begin(115200);
-  
 }
 
-void loop() {
+void loop(){
   mesh.update();
-  char x;
-  /*
-   * TODO: Costruire un pacchetto esempio con id, from, msg e id che incrementa
-   */
+  /*Send the temperature data to the next hop or broadcasts it*/
   char msg[256];
-  sprintf(msg, "{\"from\": %d, \"id\": %d, \"temp\": 34.45}", mesh.getChipId(), ++packetSendNumber);
-  
-  Serial.print("MESSAGGIO: ");
-  Serial.println(msg);
-  /*if(Serial.available()){
-    x = Serial.read();
-    if( x == 'P' ){
-       msg = getSerialJSON();
-    }
-    if( nextHopId != -1)
-      mesh.sendSingle(nextHopId, msg);
-    else
-      mesh.sendBroadcast(msg);
-  }*/
+  /*Prevent overflow*/
+  sprintf(msg, "{\"from\": %d, \"id\": %d, \"temp\": %f, \"type\": 1}", mesh.getChipId(), packetSendNumber++, readTemp());
   String p(msg);
-  mesh.sendBroadcast(p);
-  delay(2000);
+  if(nextHopId != -1)
+    mesh.sendBroadcast(p);
+  else
+    mesh.sendSingle(nextHopId, p);
+  /*If the route is expired, nextHopId is set to -1*/
+  totTime = lastSyncTime+delayTime;
+  if(totTime%SYNCINTERVAL<SYNCINTERVAL)
+    nextHopId = -1;
+  delay((long)delayTime);
 }
+
 
