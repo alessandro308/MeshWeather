@@ -53,7 +53,7 @@ void propagateDiscovery(JsonObject& m){
 }
 
 void propagateData(String& msg_str, uint32_t from, int id ){
-  if(nextHopId != -1)
+  if(nextHopId != 0)
     mesh.sendSingle(nextHopId, msg_str);
   else
     mesh.sendBroadcast(msg_str);
@@ -62,6 +62,8 @@ void propagateData(String& msg_str, uint32_t from, int id ){
 }
 
 void receivedCallback( uint32_t from, String &msg_str ){
+  if(from == 1291812) /* IN DEMO MODE, IGNORE MESSAGE FROM SERVER TO SIMULATE DISTANCE*/
+    return;
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
   int type = msg["type"];
@@ -106,16 +108,19 @@ void loop(){
   /*Send the temperature data to the next hop or broadcasts it*/
   char msg[256];
   /*Prevent overflow*/
-  sprintf(msg, "{\"from\": %d, \"id\": %d, \"temp\": %f, \"type\": 1}", mesh.getChipId(), packetSendNumber++, readTemp());
+  sprintf(msg, "{\"from\": %d, \"id\": %d, \"temp\": 26.4, \"buttonDown\": %d, \"type\": 1}", mesh.getChipId(), packetSendNumber++, digitalRead(tempPin));
   String p(msg);
+  Serial.print(p);
   totTime = (mesh.getNodeTime()-lastSyncTime)+delayTime;
   if(totTime>SYNCINTERVAL)
-    nextHopId = -1;
-  if(nextHopId != -1)
+    nextHopId = 0;
+  if(nextHopId == 0)
     mesh.sendBroadcast(p);
   else
     mesh.sendSingle(nextHopId, p);
-  delay((long)delayTime);
+  addSentMessage(packetSendNumber-1, mesh.getChipId()); 
+  //delay((long) delayTime);
+  delay(1000);
 }
 
 

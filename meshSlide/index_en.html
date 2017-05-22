@@ -26,34 +26,34 @@
 			<div class="slides">
 				<section>
 					<h2>MeshWeather</h2><br/>
-					<h6>Stazioni Meteo Distribuite per il monitoraggio dei campi</h6>
+					<h6>Arduino Weather station for monitoring field data</h6>
 					<img src="img/esempio.png" height="380px"/>
 				</section>
 
 				<section>
 					<section>
 						<h3>Hardware</h3>
-						<p class="fragment"> Abbiamo fatto ciò che non dovevamo fare...<br/>
-							... scegliere prima l'hardware e poi capire come usarlo</p>
+						<p class="fragment"> We did a big mistake...<br/>
+							... choose (and buy) the hardware before to analyze the problem</p>
 					</section>
 					<section>
 						<ul>
-							<li> ESP-01, tanti, tantissimi... <br/>
+							<li> ESP-01, so many, so much... <br/>
 								<img src="img/ESP-01.png"/>
 							</li>
 							<li>
-								Arduino e relativi sensori
+								Arduino and some sensors
 							</li>
 						</ul>
 					</section>
 					<section>
-						<h4>Circuito per gestire gli ESP-01</h4>
+						<h4>The circuit to manage the ESP-01</h4>
 						<ul>
 							<li class="fragment">
-								Per il bootloading abbiamo usato il circuito <br/> <center><a href="http://fritzing.org/projects/esp01-development-board">ESP01-developer-board</a></center> 
+								For the bootloading phase we use <br/> <center><a href="http://fritzing.org/projects/esp01-development-board">ESP01-developer-board</a></center> 
 							</li>
 							<li class="fragment">
-								Per l'utilizzo nella rete abbiamo realizzato un circuito per la regolazione della tensione, <a href="usage-only.fzz">scaricabile qui</a>
+								For the regular usage we build a circuit, <a href="usage-only.fzz">download it</a>, with tensor regulator
 							</li>
 						</ul>
 						<div>	
@@ -66,23 +66,23 @@
 				<section>
 					<section>
 						<h3>Software</h3>
-						<p>(La parte divertente)</p>
+						<p>(The funny part)</p>
 					</section>
 					<section>
-						<h4>Cosa abbiamo fatto... </h4>
+						<h4>What we did... </h4>
 						<ul>
 							<li class="fragment"> 
-								Passo 1: flashare il tutto (<a href="https://h3ron.com/post/programmare-lesp8266-ovvero-arduino-con-il-wifi-a-meno-di-2/">maggiori dettagli...</a>)
+								1: Flashing the bootloader (<a href="https://h3ron.com/post/programmare-lesp8266-ovvero-arduino-con-il-wifi-a-meno-di-2/">more details here...</a>)
 							</li>
 							<li class="fragment">
-								Passo 2: trovare una libreria per la gestione della Mesh Network
+								2: Search and find a library to manage Mesh Network
 								<ul>
 									<li class="fragment"><a href="https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi">Arduino ESP8266-WiFi</a></li>
-									<li class="fragment">Su cui è costruita la libreria che usiamo, <a href="https://github.com/alessandro308/easyMesh">easyMesh</a></li>
+									<li class="fragment">used to build another library: <a href="https://github.com/alessandro308/easyMesh">easyMesh</a></li>
 								</ul>
 							</li>
 							<li class="fragment">
-								Passo 3: Creare la nostra rete mesh (codice su <a href="https://github.com/alessandro308/MeshWeather">GitHub</a>)
+								3: Build our mesh network (code on <a href="https://github.com/alessandro308/MeshWeather">GitHub</a>)
 							</li>
 						</ul>
 					</section>
@@ -90,49 +90,35 @@
 
 				<section>
 					<section>
-						<h2>Protocolli di comunicazione</h2>
-						<h4>3 modalità di comunicazione</h4>
+						<h2>Communication protocols</h2>
+						<h4>3 communication mode</h4>
 						<ul>
-							<li class="fragment">Seriale - Arduino, ESP-01
+							<li class="fragment">Serial - Arduino, ESP-01
 								<p style="font-size: 0.7em">
-									Collegamento seriale puro, dove vengono mandati dei pacchetti JSON contenente i dati raccolti.
+									Pure serial linking, used to send JSON data that contains the sensors read values.
 								</p>
 							</li>
 							<li class="fragment">Wifi - ESP-01, ESP-01
 								<p style="font-size: 0.7em">
-									Rete Mesh ad hoc simulata tramite una serie di connessioni punto-punto.
+									Virtual ad hoc mesh network, build with many point-to-point wifi connections.
 								</p>
 							</li>
 							<li class="fragment">Wifi/Seriale - ESP-01, Server
 								<p style="font-size: 0.7em">
-									Collegamento seriale (o alternativamente Wifi) che raccoglie tutti i pacchetti della rete e li manda al server che li elaborerà
+									Serial (or Wifi) link, used to receive al network packets and send them to pc that analyze all data.
 								</p>
 							</li>
 						</ul>
 					</section>
 					<section>
-						<h2>Protocollo della rete mesh</h2>
-						Directed Diffusion
-						<hr/>
-						<div class="fragment" style="font-size: 0.7em">
-							<h4>Nodo Station / Nodo Server</h4>
-							La rete è completamente composta da ESP-01. <br/>A seconda del loro ruolo, tuttavia, possiamo distinguerli in 3 categorie: <br/> </br/>
-							<ul>
-								<li>
-									<font color="#33cccc">Station</font>. Il compito di nodi di questo tipo è quello di leggere i dati dai sensori, creare un pacchetto di tipo DATA e inviarlo al server.
-								</li>
-								<li>
-								 	<font color="#33cccc">GenericNode</font>. I nodi intermedi si occupano esclusivamente di inoltrare i pacchetti dati verso il server e le discoveryReq a tutti vicini.
-								</li>
-								<li>
-								 	<font color="#33cccc">espServer</font>. Il/i server lanciano periodicamente una discoveryReq e si preoccupano di inviare sulla porta seriale tutti i <b>nuovi</b> pacchetti dati.
-
-								</li>
-							</ul>
-						</div>
+						<h2>Serial-Arduino link</h2>
+						<ul>
+							<li>Not so realible</li>
+							<li>Differente voltage (5V VS 3.3V)</li>
+						</ul>
 					</section>
 					<section>
-						<h2>Protocollo della rete mesh</h2>
+						<h2>Mesh network protocol</h2>
 						Directed Diffusion
 						<hr/>
 						<div class="fragment " style="font-size: 0.7em">
@@ -169,6 +155,27 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
 								</li>
 								<li>
 								<div class="fragment grow"><pre><code class="C">int update, lastSyncTime</code></pre></div>Gestite dal server e usate nella fase di discovery per comunicare ai nodi l’aggiornamento delle rotte e l’avvio di una nuova fase di sincronizzazione.
+								</li>
+							</ul>
+						</div>
+					</section>
+					<section>
+						<h2>Protocollo della rete mesh</h2>
+						Directed Diffusion
+						<hr/>
+						<div class="fragment" style="font-size: 0.7em">
+							<h4>Nodo Station / Nodo Server</h4>
+							La rete è completamente composta da ESP-01. <br/>A seconda del loro ruolo, tuttavia, possiamo distinguerli in 3 categorie: <br/> </br/>
+							<ul>
+								<li>
+									<font color="#33cccc">Station</font>. Il compito di nodi di questo tipo è quello di leggere i dati dai sensori, creare un pacchetto di tipo DATA e inviarlo al server.
+								</li>
+								<li>
+								 	<font color="#33cccc">GenericNode</font>. I nodi intermedi si occupano esclusivamente di inoltrare i pacchetti dati verso il server e le discoveryReq a tutti vicini.
+								</li>
+								<li>
+								 	<font color="#33cccc">espServer</font>. Il/i server lanciano periodicamente una discoveryReq e si preoccupano di inviare sulla porta seriale tutti i <b>nuovi</b> pacchetti dati.
+
 								</li>
 							</ul>
 						</div>
@@ -275,7 +282,7 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
 								var src = iframe.src;
 								iframe.src = "";
 								iframe.src = src;
-							}, 16000);
+							}, 6000);
 							
 						</script>
 					</section>

@@ -47,8 +47,8 @@ void propagateDiscovery(JsonObject& m){
 void propagateData(String& msg_str, uint32_t from, int id ){
   /*If the route is expired, nextHopId is set to -1*/
   if((mesh.getNodeTime()-lastSyncTime)>=SYNCINTERVAL)
-    nextHopId = -1;
-  if(nextHopId != -1)
+    nextHopId = 0;
+  if(nextHopId != 0)
     mesh.sendSingle(nextHopId, msg_str);
   else
     mesh.sendBroadcast(msg_str);
@@ -57,12 +57,19 @@ void propagateData(String& msg_str, uint32_t from, int id ){
 }
 
 void receivedCallback( uint32_t from, String &msg_str ){
+  Serial.println("RECEIVED MESSAGE");
+  Serial.print("from = ");
+  Serial.println(from);
+  Serial.println(msg_str);
   StaticJsonBuffer<512> jsonBuffer;
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
   int type = msg["type"];
   switch(type){  
     case(DISCOVERY_REQ):{
         if(msg["update_number"] > update){
+          Serial.println("Aggiorno rotta");
+          Serial.print("newNextHopID =");
+          Serial.println((uint32_t) msg["sender_id"]);
           update = msg["update_number"];
           if(update == INT_MAX)
             /*Prevent overflow*/
@@ -85,7 +92,7 @@ void newConnectionCallback( bool adopt ){}
 void setup(){
   mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT );
   mesh.setReceiveCallback(&receivedCallback);
-  mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
+  mesh.setDebugMsgTypes( ERROR); //| MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
   mesh.setNewConnectionCallback( &newConnectionCallback );
   Serial.begin(115200);
 }

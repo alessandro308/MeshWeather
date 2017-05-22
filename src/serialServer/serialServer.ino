@@ -39,10 +39,17 @@ void discoveryTree(){
 }
 
 void receivedCallback( uint32_t from, String &msg_str ){
+  Serial.print("Received packet from: ");
+  Serial.println(from);
+  Serial.println(msg_str);
+  if(from == 2008034) /* IN DEMO MODE IGNORE PACKET FROM SOURCE TO SIMULATE DISTANCE */
+    return;
   JsonObject& message = jsonBuffer.parseObject(msg_str);
   int type = message["type"];
+  
   if(type!=DISCOVERY_REQ)
       Serial.println(msg_str);
+ 
 }
 
 void newConnectionCallback( bool adopt ){}
@@ -50,7 +57,7 @@ void newConnectionCallback( bool adopt ){}
 void setup(){
   mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT );
   mesh.setReceiveCallback(&receivedCallback);
-  mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
+  mesh.setDebugMsgTypes( ERROR); // | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE );
   //Controlla che il server sia raggiungibile
   mesh.setNewConnectionCallback( &newConnectionCallback );
   Serial.begin(115200);  
