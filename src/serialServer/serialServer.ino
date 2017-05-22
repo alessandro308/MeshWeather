@@ -22,15 +22,6 @@ int update = 0;
 uint32_t nextHopId = 0;
 DynamicJsonBuffer jsonBuffer(MAX_SIZE);
 
-/*
-* This function prints the recieved JSON into the Serial Port
-* so that the python server can read it.
-*/ 
-void printJson(JsonObject& m){
-  char msg[256];
-  sprintf(msg, "{\"from\": %d, \"id\": %d, \"temp\": %d}", m["from"], m["id"], m["temp"]);
-  Serial.println(msg);
-}
 
 /*
 * This function starts the periodic discovery and the coverage tree building
@@ -51,7 +42,7 @@ void receivedCallback( uint32_t from, String &msg_str ){
   JsonObject& message = jsonBuffer.parseObject(msg_str);
   int type = message["type"];
   if(type!=DISCOVERY_REQ)
-    printJson(message);
+      Serial.println(msg_str);
 }
 
 void newConnectionCallback( bool adopt ){}

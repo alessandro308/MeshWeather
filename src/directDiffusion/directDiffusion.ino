@@ -15,7 +15,6 @@
 #define   SYNCINTERVAL    1800000
 
 easyMesh mesh;
-DynamicJsonBuffer jsonBuffer(MAX_SIZE);
 char msgString[MAX_SIZE];
 uint32_t nextHopId = 0;
 uint32_t lastSyncTime = 0;
@@ -30,7 +29,6 @@ int alreadySent(int id, uint32_t from){
       return 1;
   return 0;
 }
-
 int lastInserted = 0;
 void addSentMessage(int id, uint32_t from){
   lastInserted=(lastInserted+1)%30;
@@ -59,6 +57,7 @@ void propagateData(String& msg_str, uint32_t from, int id ){
 }
 
 void receivedCallback( uint32_t from, String &msg_str ){
+  StaticJsonBuffer<512> jsonBuffer;
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
   int type = msg["type"];
   switch(type){  

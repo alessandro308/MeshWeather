@@ -18,7 +18,6 @@
 
 int tempPin = 2;
 easyMesh mesh;
-DynamicJsonBuffer jsonBuffer(MAX_SIZE);
 uint32_t lastSyncTime = 0; //Used to guarantee the route consistency
 char msgString[MAX_SIZE];
 uint32_t delayTime = 15000;
@@ -63,6 +62,7 @@ void propagateData(String& msg_str, uint32_t from, int id ){
 }
 
 void receivedCallback( uint32_t from, String &msg_str ){
+  StaticJsonBuffer<200> jsonBuffer;
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
   int type = msg["type"];
   switch(type){  
@@ -74,6 +74,7 @@ void receivedCallback( uint32_t from, String &msg_str ){
             update = 0;
           nextHopId = msg["sender_id"];
           propagateDiscovery(msg);
+          lastSyncTime = mesh.getNodeTime();
         }
     }break;
     case(DATA):{
@@ -107,14 +108,13 @@ void loop(){
   /*Prevent overflow*/
   sprintf(msg, "{\"from\": %d, \"id\": %d, \"temp\": %f, \"type\": 1}", mesh.getChipId(), packetSendNumber++, readTemp());
   String p(msg);
+  totTime = (mesh.getNodeTime()-lastSyncTime)+delayTime;
+  if(totTime>SYNCINTERVAL)
+    nextHopId = -1;
   if(nextHopId != -1)
     mesh.sendBroadcast(p);
   else
     mesh.sendSingle(nextHopId, p);
-  /*If the route is expired, nextHopId is set to -1*/
-  totTime = lastSyncTime+delayTime;
-  if(totTime%SYNCINTERVAL<SYNCINTERVAL)
-    nextHopId = -1;
   delay((long)delayTime);
 }
 

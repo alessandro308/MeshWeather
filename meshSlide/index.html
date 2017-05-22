@@ -150,7 +150,8 @@
 						<div style="font-size: 0.7em">
 							<h4>Strutture dati</h4>
 							<ul>
-								<li><div class="fragment grow"><pre><code class="C">map&lt;uint32_t, int&gt; lastSentMsg</code></pre></div>Dizionario attraverso il quale si evita la diffusione di pacchetti duplicati all'interno della rete. 
+								<li><div class="fragment grow"><pre><code class="C">int lastPId[30];
+uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita la diffusione di pacchetti duplicati all'interno della rete. 
 								</li>
 								<li>
 								<div class="fragment grow"><pre><code class="C">int update, lastSyncTime</code></pre></div>Gestite dal server e usate nella fase di discovery per comunicare ai nodi l’aggiornamento delle rotte e l’avvio di una nuova fase di sincronizzazione.
@@ -208,7 +209,7 @@
 						<hr/>
 						<div style="font-size: 0.7em">
 							<h4>Discovery nei nodi</h4>
-							Se la discoveryReq ricevuta è più recente dell’ultima memorizzata si aggiorna la rotta e si propaga la richiesta in broadcast.
+							Si aggiorna la rotta con la più recente.
 						<div class="fragment grow" >
 							<pre><code class="C">void receivedCallback( uint32_t from, String &msg_str ){
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
@@ -217,15 +218,14 @@
     case(DISCOVERY_REQ):{
         if(msg["update_number"] > update){
           update = msg["update_number"];
-          if(update == INT_MAX)
-            /*Prevent overflow*/
-            update = 0;
           nextHopId = msg["sender_id"];
           propagateDiscovery(msg);
-	 lastSyncTime = mesh.getNodeTime();
+          lastSyncTime = mesh.getNodeTime();
         }
     }break;
-[...]
+    [...]
+  }
+}
 </code></pre></div>
 						</div>
 					</section>
@@ -235,21 +235,14 @@
 						<hr/>
 						<div style="font-size: 0.7em">
 							<h4>Gestione pacchetto dati nel server</h4>
-							Se il pacchetto ricevuto da <i>from</i> è più recente dell’ultimo memorizzato, si invia sulla seriale e si aggiorna il dizionario.
+							Il server ESP-01 spedisce tutti i pacchetti che riceve sul seriale, delegando al computer (decisamente con più capacità di calcolo), di organizzare il tutto e scartare i pacchetti duplicati.
 						<div class="fragment grow" >
 							<pre><code class="C">void receivedCallback( uint32_t from, String &msg_str ){
   JsonObject& message = jsonBuffer.parseObject(msg_str);
   int type = message["type"];
-  if(type!=DISCOVERY_REQ){
-    if (lastSentMsg[message["from"]] != NULL && lastSentMsg[message["from"]] != 0)
-      if(lastSentMsg[message["from"]] < message["id"]){
-        addAlreadySent(message["from"], message["id"]);
-        printJson(message);
-      }
-    else{
-        addAlreadySent(message["from"], message["id"]);
-        printJson(message);
-    }}}
+  if(type!=DISCOVERY_REQ)
+    printJson(message);
+}
 
 </code></pre></div>
 						</div>
