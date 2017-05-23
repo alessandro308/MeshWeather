@@ -12,7 +12,7 @@
 #define   MAX_SIZE        512
 #define   DISCOVERY_REQ   0
 #define   DATA            1
-#define   SYNCINTERVAL    1800000
+#define   SYNCINTERVAL    10000000 //1800000000
 
 easyMesh mesh;
 char msgString[MAX_SIZE];
@@ -38,7 +38,7 @@ void addSentMessage(int id, uint32_t from){
 
 void propagateDiscovery(JsonObject& m){
   char msg[256];
-  sprintf(msg, "{\"from\": %d, \"update_number\": %d, \"sender_id\": %d, \"type\": 0}", m["from"], m["update_number"], mesh.getChipId());
+  sprintf(msg, "{\"from\": %du, \"update_number\": %d, \"sender_id\": %du, \"type\": 0}", (uint32_t) m["from"], m["update_number"], mesh.getChipId());
   String p(msg);
   mesh.sendBroadcast(p);
   return;
@@ -57,10 +57,12 @@ void propagateData(String& msg_str, uint32_t from, int id ){
 }
 
 void receivedCallback( uint32_t from, String &msg_str ){
+  /*
   Serial.println("RECEIVED MESSAGE");
   Serial.print("from = ");
   Serial.println(from);
   Serial.println(msg_str);
+  */
   StaticJsonBuffer<512> jsonBuffer;
   JsonObject& msg = jsonBuffer.parseObject(msg_str);
   int type = msg["type"];
@@ -69,7 +71,9 @@ void receivedCallback( uint32_t from, String &msg_str ){
         if(msg["update_number"] > update){
           Serial.println("Aggiorno rotta");
           Serial.print("newNextHopID =");
-          Serial.println((uint32_t) msg["sender_id"]);
+          Serial.print((uint32_t) msg["sender_id"]);
+          Serial.print(" from =");
+          Serial.println();
           update = msg["update_number"];
           if(update == INT_MAX)
             /*Prevent overflow*/
@@ -80,8 +84,13 @@ void receivedCallback( uint32_t from, String &msg_str ){
         }
     }break;
     case(DATA):{
-      if(!alreadySent(msg["id"], msg["from"]))
+      if(!alreadySent(msg["id"], msg["from"])){
+          Serial.print("sending from ");
+          Serial.print((uint32_t)msg["from"]);
+          Serial.print(" with id ");
+          Serial.println((int)msg["id"]);
           propagateData(msg_str, msg["from"], msg["id"]);
+      }
     }break;
     default:{}break;
   }

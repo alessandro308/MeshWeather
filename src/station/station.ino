@@ -10,7 +10,7 @@
 #define   RSSI_THRESHOLD  50 
 #define   SERVER_ID       -1
 #define   SERVER_IP       
-#define   SYNCINTERVAL    1800000
+#define   SYNCINTERVAL    10000000 //1800000000
 #define   SERVER_PORT     
 #define   MAX_SIZE        512
 #define   DISCOVERY_REQ   0
@@ -20,7 +20,7 @@ int tempPin = 2;
 easyMesh mesh;
 uint32_t lastSyncTime = 0; //Used to guarantee the route consistency
 char msgString[MAX_SIZE];
-uint32_t delayTime = 15000;
+uint32_t delayTime = 1000000;//15000000;
 uint32_t totTime = 0;
 uint32_t nextHopId = 0;
 int update = 0;
@@ -46,7 +46,7 @@ void addSentMessage(int id, uint32_t from){
 
 void propagateDiscovery(JsonObject& m){
   char msg[256];
-  sprintf(msg, "{\"from\": %d, \"update_number\": %d, \"sender_id\": %d, \"type\": 0}", m["from"], m["update_number"], mesh.getChipId());
+  sprintf(msg, "{\"from\": %du, \"update_number\": %d, \"sender_id\": %du, \"type\": 0}", (uint32_t) m["from"], m["update_number"], mesh.getChipId());
   String p(msg);
   mesh.sendBroadcast(p);
   return;
