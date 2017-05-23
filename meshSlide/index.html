@@ -248,7 +248,7 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
 					</section>
 					<section>
 						<p>La stazione Arduino viene simulata direttamente su un ESP-01.</p>
-								<pre><code class="c">void loop(){
+								<pre><code class="c fragment grow">void loop(){
 	[...]
 	char msg[100];
 	sprintf(msg, "{\"temp\": %f", getTemp());
@@ -258,7 +258,7 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
 					</section>
 					<section>
 						<p>Abbiamo 3 ESP-01, quello connesso al server ignora i pacchetti che gli arrivano dal primo</p>
-						<pre><code class="c">void receivedCallback( uint32_t from, String &msg_str ){
+						<pre><code class="c fragment grow">void receivedCallback( uint32_t from, String &msg_str ){
   if(from == 2008034 /*ID dell'ESP-01 che genera i dati*/)
     return;
     [...]

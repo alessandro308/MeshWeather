@@ -2,10 +2,10 @@ import serial, json
 import random
 import httplib, urllib, time
 from random import uniform
-ser = serial.Serial('/dev/cu.SLAB_USBtoUART', 115200);
+#ser = serial.Serial('/dev/cu.SLAB_USBtoUART', 115200);
 while True:
-	x = ser.readline()
-	#x = '{"temp":26.4, "id": 1010, "from": 1234}';
+	#x = ser.readline()
+	x = '{"temp":26.4, "id": 1010, "from": 1234}';
 	j = json.loads(x);
 	t = j["temp"]+random.uniform(-0.5, 0.5)
 	print "Temperatura: "+str(t);

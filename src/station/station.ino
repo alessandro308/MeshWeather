@@ -20,7 +20,7 @@ int tempPin = 2;
 easyMesh mesh;
 uint32_t lastSyncTime = 0; //Used to guarantee the route consistency
 char msgString[MAX_SIZE];
-uint32_t delayTime = 1000000;//15000000;
+uint32_t delayTime = 5000; //16000000; //1000000;
 uint32_t totTime = 0;
 uint32_t nextHopId = 0;
 int update = 0;
@@ -110,8 +110,8 @@ void loop(){
   /*Prevent overflow*/
   sprintf(msg, "{\"from\": %d, \"id\": %d, \"temp\": 26.4, \"buttonDown\": %d, \"type\": 1}", mesh.getChipId(), packetSendNumber++, digitalRead(tempPin));
   String p(msg);
-  Serial.print(p);
-  totTime = (mesh.getNodeTime()-lastSyncTime)+delayTime;
+ 
+  totTime = (mesh.getNodeTime()-lastSyncTime)+delayTime*1000;
   if(totTime>SYNCINTERVAL)
     nextHopId = 0;
   if(nextHopId == 0)
@@ -120,7 +120,7 @@ void loop(){
     mesh.sendSingle(nextHopId, p);
   addSentMessage(packetSendNumber-1, mesh.getChipId()); 
   //delay((long) delayTime);
-  delay(1000);
+  delay(delayTime);
 }
 
 

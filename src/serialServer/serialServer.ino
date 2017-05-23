@@ -28,32 +28,28 @@ uint32_t chipId = 0;
 */
 void discoveryTree(){ 
   char msg[256];
-  
-  Serial.print("discoveryTree sent with id ");
-  Serial.println(chipId);
-  sprintf(msg, "{\"from\": %du, \"update_number\": %d, \"sender_id\": %du, \"type\": 0}", chipId, ++updateNumber, chipId);
   /*Prevent overflow*/
   if(updateNumber == INT_MAX)
     updateNumber = 0;
+  sprintf(msg, "{\"from\": %"PRIu32", \"update_number\": %d, \"sender_id\": %"PRIu32", \"type\": 0}", chipId, ++updateNumber, chipId);
   String p(msg);
   mesh.sendBroadcast(p);
   lastSyncTime = mesh.getNodeTime();
   return; 
 }
-
+int rpn =0;
 void receivedCallback( uint32_t from, String &msg_str ){
-  Serial.print("Received packet from: ");
-  Serial.println(from);
-  Serial.println(msg_str);
-  if(from == 2008034) /* IN DEMO MODE IGNORE PACKET FROM SOURCE TO SIMULATE DISTANCE */
+  if(from == 2008034){
+    /* IN DEMO MODE IGNORE PACKET FROM SOURCE TO SIMULATE DISTANCE */
     return;
+  }
+    
   JsonObject& message = jsonBuffer.parseObject(msg_str);
   int type = message["type"];
   
   if(type!=DISCOVERY_REQ){
-    //Serial.print(from);
-    //Serial.print(" - ");
     Serial.println(msg_str);
+    Serial.flush();
   }
 }
 
