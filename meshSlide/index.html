@@ -27,7 +27,8 @@
 				<section>
 					<h2>MeshWeather</h2><br/>
 					<h6>Stazioni Meteo Distribuite per il monitoraggio dei campi</h6>
-					<img src="img/esempio.png" height="380px"/>
+					<img src="img/esempio.png" height="270px"/>
+					<p style="font-size: 0.5em">Alessandro Pagiaro e Mario Salinas</p>
 				</section>
 
 				<section>
@@ -112,20 +113,19 @@
 					</section>
 					<section>
 						<h2>Protocollo della rete mesh</h2>
-						Directed Diffusion
 						<hr/>
 						<div class="fragment" style="font-size: 0.7em">
 							<h4>Nodo Station / Nodo Server</h4>
 							La rete è completamente composta da ESP-01. <br/>A seconda del loro ruolo, tuttavia, possiamo distinguerli in 3 categorie: <br/> </br/>
 							<ul>
 								<li>
-									<font color="#33cccc">Station</font>. Il compito di nodi di questo tipo è quello di leggere i dati dai sensori, creare un pacchetto di tipo DATA e inviarlo al server.
+									<font color="#33cccc">Station</font>. Il compito dei nodi di questo tipo è quello di leggere i dati dai sensori, creare un pacchetto di tipo DATA e inviarlo al server.
 								</li>
 								<li>
 								 	<font color="#33cccc">GenericNode</font>. I nodi intermedi si occupano esclusivamente di inoltrare i pacchetti dati verso il server e le discoveryReq a tutti vicini.
 								</li>
 								<li>
-								 	<font color="#33cccc">espServer</font>. Il/i server lanciano periodicamente una discoveryReq e si preoccupano di inviare sulla porta seriale tutti i <b>nuovi</b> pacchetti dati.
+								 	<font color="#33cccc">espServer</font>. Il/i server lanciano periodicamente una discoveryReq e inviano sulla porta seriale tutti i <b>nuovi</b> pacchetti dati.
 
 								</li>
 							</ul>
@@ -133,7 +133,6 @@
 					</section>
 					<section>
 						<h2>Protocollo della rete mesh</h2>
-						Directed Diffusion
 						<hr/>
 						<div class="fragment " style="font-size: 0.7em">
 							<h4>Discovery</h4>
@@ -144,12 +143,11 @@
 	"sender_id" : uint32_t prevHopId, 
 	"type" :  0 
 }</code></pre>
-							Alternativamente si potrebbe usare l'<font color="#33cccc">RSS</font>. Si è testato ma per le distanze usate era tutto molto variabile e poco affidabile con il rischio di creare una rete piatta.
+							Alternativamente si potrebbe usare l'<font color="#33cccc">RSS</font>. 
 						</div>
 					</section>
 					<section>
 						<h2>Protocollo della rete mesh</h2>
-						Directed Diffusion
 						<hr/>
 						<div class="fragment" style="font-size: 0.7em">
 							<h4>Fowarding/Data</h4>
@@ -159,7 +157,6 @@
 					</section>
 					<section>
 						<h2>Protocollo della rete mesh</h2>
-						Directed Diffusion
 						<hr/>
 						<div style="font-size: 0.7em">
 							<h4>Strutture dati</h4>
@@ -175,7 +172,6 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
 					</section>
 					<section>
 						<h2>Protocollo della rete mesh</h2>
-						Directed Diffusion
 						<hr/>
 						<div style="font-size: 0.7em">
 							<h4>Discovery nel server</h4>
@@ -198,7 +194,6 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
 					</section>
 					<section>
 						<h2>Protocollo della rete mesh</h2>
-						Directed Diffusion
 						<hr/>
 						<div style="font-size: 0.7em">
 							<h4>Discovery nei nodi</h4>
@@ -224,7 +219,6 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
 					</section>
 					<section>
 						<h2>Protocollo della rete mesh</h2>
-						Directed Diffusion
 						<hr/>
 						<div style="font-size: 0.7em">
 							<h4>Gestione pacchetto dati nel server</h4>
@@ -251,7 +245,7 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
 								<pre><code class="c fragment grow">void loop(){
 	[...]
 	char msg[100];
-	sprintf(msg, "{\"temp\": %f", getTemp());
+	sprintf(msg, "{\"temp\": %f}", getTemp());
 	mesh.sendBroadcast(msg);
 }</code></pre>
 						<p style="font-size: 0.6em">Tale semplificazione è giustificabile dal fatto che nel caso in cui si hanno due sensori di raccolta dati, questi possono essere raccolti direttamente con un ESP-01 senza necessità di un microcontrollore esterno.</p>
@@ -263,6 +257,16 @@ uint32_t lastCId[30];</code></pre></div>Dizionario attraverso il quale si evita 
     return;
     [...]
     }</code></pre>
+					</section>
+					<section>
+						<h2>Aspettate un attimo... e il duty cycle?</h2>
+						<div class="fragment">
+						<center><img  width="150px" src="https://hackster.imgix.net/uploads/cover_image/file/155340/ESP8266_module.jpg?auto=compress%2Cformat&w=400&h=300&fit=min" /></center>
+
+						Non ha una funzione per far spegnere la radio. O meglio...
+						<pre><code class="C">void deepSleep(int milliseconds){}</code></pre>
+
+						spegne si la radio, ma poi riparte la funzione di setup, è praticamente un <font class="fragment grow" color="#33cccc">RESET!!!!!</font></div>
 					</section>
 					<section>
 						<p>I dati raccolti non vengono analizzati ma semplicemente salvati su un server (<a href="https://thingspeak.com">ThingSpeak</a>)</p>

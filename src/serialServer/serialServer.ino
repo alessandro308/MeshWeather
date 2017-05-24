@@ -70,13 +70,5 @@ void loop(){
   mesh.update();
   //Periodic Discovery builds the forewarding tree (no cycles)
   if(mesh.getNodeTime() - lastSyncTime >= SYNCINTERVAL)
-    /* 
-    Serial.print("node time = ");
-    Serial.print(mesh.getNodeTime());
-    Serial.print(" - lastSync = ");
-    Serial.print(lastSyncTime);
-    Serial.print("  -> diff = ");
-    Serial.println((mesh.getNodeTime() - lastSyncTime));
-    */
     discoveryTree();
 }
